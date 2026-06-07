@@ -1,0 +1,100 @@
+{
+  "params": {
+    "T_PICK": 3.0,
+    "T_RESTART": 1.0,
+    "T_LEAD": 2.3,
+    "source": "T_PICK·T_LEAD=영상측정, T_RESTART·affine=코드, 벨트mm/s=가정"
+  },
+  "A_throughput": [
+    {
+      "gap_s": 0.5,
+      "stop_s": 45.0,
+      "moving_s": 30.0,
+      "improve_pct": 33.3
+    },
+    {
+      "gap_s": 1,
+      "stop_s": 50.0,
+      "moving_s": 30.0,
+      "improve_pct": 40.0
+    },
+    {
+      "gap_s": 2,
+      "stop_s": 60.0,
+      "moving_s": 30.0,
+      "improve_pct": 50.0
+    },
+    {
+      "gap_s": 3,
+      "stop_s": 70.0,
+      "moving_s": 30,
+      "improve_pct": 57.1
+    },
+    {
+      "gap_s": 4,
+      "stop_s": 80.0,
+      "moving_s": 40,
+      "improve_pct": 50.0
+    },
+    {
+      "gap_s": 5,
+      "stop_s": 90.0,
+      "moving_s": 50,
+      "improve_pct": 44.4
+    },
+    {
+      "gap_s": 6,
+      "stop_s": 100.0,
+      "moving_s": 60,
+      "improve_pct": 40.0
+    },
+    {
+      "gap_s": 8,
+      "stop_s": 120.0,
+      "moving_s": 80,
+      "improve_pct": 33.3
+    },
+    {
+      "gap_s": 10,
+      "stop_s": 140.0,
+      "moving_s": 100,
+      "improve_pct": 28.6
+    }
+  ],
+  "B_accuracy": {
+    "mm_per_px": 0.5379,
+    "T_LEAD": 2.3,
+    "cases": [
+      {
+        "belt_mm_s": 20,
+        "no_pred_err_mm": 46.0,
+        "pred_err_mm": {
+          "0%": 0.0,
+          "5%": 2.3,
+          "10%": 4.6,
+          "20%": 9.2
+        }
+      },
+      {
+        "belt_mm_s": 40,
+        "no_pred_err_mm": 92.0,
+        "pred_err_mm": {
+          "0%": 0.0,
+          "5%": 4.6,
+          "10%": 9.2,
+          "20%": 18.4
+        }
+      },
+      {
+        "belt_mm_s": 60,
+        "no_pred_err_mm": 138.0,
+        "pred_err_mm": {
+          "0%": 0.0,
+          "5%": 6.9,
+          "10%": 13.8,
+          "20%": 27.6
+        }
+      }
+    ]
+  }
+}

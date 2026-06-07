@@ -1,0 +1,473 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Smart Farm Dashboard</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    :root{
+      --bg:#f3f3f3; --card:#fff; --shadow:0 2px 10px rgba(0,0,0,.08);
+      --line:#e8e8e8; --muted:#666;
+    }
+    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif; margin:0; background:var(--bg); }
+    .wrap { padding: 14px 16px 24px; max-width: 1200px; margin: 0 auto; }
+
+    /* Top Nav */
+    .topbar{
+      position: sticky; top:0; z-index: 50;
+      background: rgba(243,243,243,.92);
+      backdrop-filter: blur(8px);
+      border-bottom: 1px solid var(--line);
+      padding: 10px 0;
+    }
+    .toprow{
+      display:flex; gap:12px; align-items:center; justify-content:space-between;
+      max-width: 1200px; margin:0 auto; padding: 0 16px;
+    }
+    .brand{ font-weight:900; letter-spacing:.2px; }
+    .nav{ display:flex; gap:8px; flex-wrap:wrap; }
+    .tabbtn{
+      border:1px solid var(--line); background:var(--card);
+      padding:8px 12px; border-radius:12px; cursor:pointer; font-weight:700;
+    }
+    .tabbtn.active{ border-color:#111; }
+
+    .card{ background:var(--card); border-radius:14px; box-shadow:var(--shadow); padding:16px; border:1px solid rgba(0,0,0,.03); }
+    h2{ margin:0 0 10px 0; }
+    .muted{ color:var(--muted); font-size:13px; }
+
+    /* Inner layout */
+    .grid-2{ display:grid; grid-template-columns: 1fr 1fr; gap:14px; }
+    @media (max-width: 900px){ .grid-2{ grid-template-columns: 1fr; } }
+
+    table{ width:100%; border-collapse:collapse; }
+    td{ padding:10px 8px; border-bottom:1px solid var(--line); }
+    td.key{ width:120px; font-weight:800; }
+    td.val{ text-align:right; font-variant-numeric: tabular-nums; }
+    .big{ font-size:22px; font-weight:900; }
+
+    input[type="text"]{ width:170px; padding:7px 10px; border-radius:12px; border:1px solid #ccc; }
+    button{
+      padding:8px 12px; border-radius:12px; border:1px solid #ccc;
+      background:#fff; cursor:pointer; font-weight:800;
+    }
+    button.primary{ border-color:#111; }
+
+    /* KPI tiles */
+    .kpis{ display:grid; grid-template-columns: repeat(3, 1fr); gap:12px; }
+    @media (max-width: 900px){ .kpis{ grid-template-columns: 1fr; } }
+    .kpi{
+      background: #fff; border:1px solid var(--line); border-radius:14px;
+      padding:14px; display:flex; align-items:flex-end; justify-content:space-between;
+    }
+    .kpi .label{ font-weight:800; color:#222; }
+    .kpi .value{ font-size:26px; font-weight:950; font-variant-numeric: tabular-nums; }
+
+    pre{
+      background:#0b0b0b; color:#00ff6a; padding:12px; border-radius:12px;
+      height:160px; overflow:auto; margin:0;
+    }
+
+    .hidden{ display:none; }
+    .row{ display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
+  </style>
+</head>
+
+<body>
+  <!-- Sticky Topbar -->
+  <div class="topbar">
+    <div class="toprow">
+      <div>
+        <div class="brand">Smart Farm Dashboard</div>
+        <div class="muted">Dobot 컨트롤러 · 생산/물류 · 환경 모니터링</div>
+      </div>
+
+      <div class="row">
+        <span class="muted">Server IP</span>
+        <input id="ip" type="text" value="127.0.0.1" />
+        <button class="primary" onclick="connect()">Connect</button>
+      </div>
+    </div>
+
+    <div class="toprow" style="margin-top:10px;">
+      <div class="nav">
+        <button class="tabbtn active" id="tabBtn-controller" onclick="switchTab('controller')">Dobot Controller</button>
+        <button class="tabbtn" id="tabBtn-ops" onclick="switchTab('ops')">생산/물류</button>
+        <button class="tabbtn" id="tabBtn-env" onclick="switchTab('env')">환경 모니터링</button>
+      </div>
+
+      <div class="muted" id="lastUpdate">Last: -</div>
+    </div>
+  </div>
+
+  <div class="wrap">
+    <!-- TAB 1: Controller -->
+    <div id="tab-controller">
+      <!-- ✅ grid 제거: 카드가 화면 폭을 꽉 채움 -->
+      <div class="card">
+        <h2>Dobot 상태</h2>
+        <div class="muted">Joint 1~4 각도 + Base X/Y/Z/R 표시</div>
+
+        <div style="height:10px;"></div>
+
+        <div class="grid-2">
+          <div class="card" style="box-shadow:none; border:1px solid var(--line);">
+            <div style="font-weight:950; margin-bottom:8px;">Joint (deg)</div>
+            <table>
+              <tr><td class="key">Joint1</td><td class="val big" id="j1">-</td></tr>
+              <tr><td class="key">Joint2</td><td class="val big" id="j2">-</td></tr>
+              <tr><td class="key">Joint3</td><td class="val big" id="j3">-</td></tr>
+              <tr><td class="key">Joint4</td><td class="val big" id="j4">-</td></tr>
+            </table>
+            <div class="muted" id="jointTopic">Joint topic: -</div>
+          </div>
+
+          <div class="card" style="box-shadow:none; border:1px solid var(--line);">
+            <div style="font-weight:950; margin-bottom:8px;">Base (mm / deg)</div>
+            <table>
+              <tr><td class="key">X</td><td class="val big" id="x">-</td></tr>
+              <tr><td class="key">Y</td><td class="val big" id="y">-</td></tr>
+              <tr><td class="key">Z</td><td class="val big" id="z">-</td></tr>
+              <tr><td class="key">R</td><td class="val big" id="r">-</td></tr>
+            </table>
+            <div class="muted" id="poseTopic">Pose topic: -</div>
+          </div>
+        </div>
+
+        <div style="height:10px;"></div>
+
+        <div class="row">
+          <div class="kpi" style="flex:1;">
+            <div>
+              <div class="label">Pick & Place 누적 횟수</div>
+              <div class="muted">서버/로봇 이벤트로 누적</div>
+            </div>
+            <div class="value" id="ppCountBig">0</div>
+          </div>
+
+          <button onclick="sendPickPlace()">Pick & Place 실행</button>
+          <button onclick="resetCounters()">누적값 리셋</button>
+        </div>
+
+        <div style="height:10px;"></div>
+        <div class="muted">※ Pick&Place 성공 시 서버가 <code>{"type":"pp_done"}</code> 같은 이벤트를 보내면 자동 누적됩니다.</div>
+      </div>
+
+      <div style="height:14px;"></div>
+
+      <div class="card">
+        <h2>Log</h2>
+        <pre id="log"></pre>
+      </div>
+    </div>
+
+    <!-- TAB 2: Ops dashboard -->
+    <div id="tab-ops" class="hidden">
+      <div class="card">
+        <h2>생산/물류 대시보드</h2>
+        <div class="muted">수확량, 포장 횟수, 적재 수량을 실시간 확인</div>
+      </div>
+
+      <div style="height:14px;"></div>
+
+      <div class="kpis">
+        <div class="kpi">
+          <div>
+            <div class="label">수확량</div>
+            <div class="muted">Harvest (pcs/kg 등)</div>
+          </div>
+          <div class="value" id="harvestKpi">0</div>
+        </div>
+
+        <div class="kpi">
+          <div>
+            <div class="label">포장 횟수</div>
+            <div class="muted">Packaging count</div>
+          </div>
+          <div class="value" id="packKpi">0</div>
+        </div>
+
+        <div class="kpi">
+          <div>
+            <div class="label">적재 수량</div>
+            <div class="muted">Loaded amount</div>
+          </div>
+          <div class="value" id="loadKpi">0</div>
+        </div>
+      </div>
+
+      <div style="height:14px;"></div>
+
+      <div class="card">
+        <div class="row">
+          <button onclick="sendOps('harvest_inc')">수확 +1</button>
+          <button onclick="sendOps('pack_inc')">포장 +1</button>
+          <button onclick="sendOps('load_inc')">적재 +1</button>
+          <button onclick="resetCounters()">누적값 리셋</button>
+        </div>
+        <div style="height:8px;"></div>
+        <div class="muted">
+          ※ 실제 운영에선 서버가 <code>{"type":"ops_update","harvest":..,"pack":..,"load":..}</code> 를 보내주면 자동 반영됩니다.
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 3: Environment -->
+    <div id="tab-env" class="hidden">
+      <div class="card">
+        <h2>환경 모니터링</h2>
+        <div class="muted">현재 온도, 습도, 영양분 수치를 확인</div>
+      </div>
+
+      <div style="height:14px;"></div>
+
+      <div class="kpis">
+        <div class="kpi">
+          <div>
+            <div class="label">온도</div>
+            <div class="muted">Temperature</div>
+          </div>
+          <div class="value"><span id="tempKpi">-</span>°C</div>
+        </div>
+
+        <div class="kpi">
+          <div>
+            <div class="label">습도</div>
+            <div class="muted">Humidity</div>
+          </div>
+          <div class="value"><span id="humKpi">-</span>%</div>
+        </div>
+
+        <div class="kpi">
+          <div>
+            <div class="label">영양분</div>
+            <div class="muted">Nutrients (EC/PPM 등)</div>
+          </div>
+          <div class="value" id="nutKpi">-</div>
+        </div>
+      </div>
+
+      <div style="height:14px;"></div>
+
+      <div class="card">
+        <div class="row">
+          <button onclick="sendEnvRequest()">환경 값 요청</button>
+          <button onclick="simulateEnv()">임시(테스트) 값 생성</button>
+        </div>
+        <div style="height:8px;"></div>
+        <div class="muted">
+          ※ 서버는 <code>{"type":"env_update","temp_c":..,"humidity":..,"nutrient":..}</code> 형태로 보내주면 됩니다.
+        </div>
+      </div>
+    </div>
+  </div>
+
+<script>
+  // ======================
+  // State (persisted)
+  // ======================
+  const STORE_KEY = "farm_dashboard_state_v1";
+  const state = loadState();
+
+  let ws = null;
+
+  function loadState(){
+    try{
+      const raw = localStorage.getItem(STORE_KEY);
+      if(!raw) return {
+        ppCount: 0,
+        ops: { harvest: 0, pack: 0, load: 0 },
+        env: { temp_c: null, humidity: null, nutrient: null },
+      };
+      const parsed = JSON.parse(raw);
+      return {
+        ppCount: parsed.ppCount ?? 0,
+        ops: parsed.ops ?? { harvest: 0, pack: 0, load: 0 },
+        env: parsed.env ?? { temp_c: null, humidity: null, nutrient: null },
+      };
+    }catch{
+      return {
+        ppCount: 0,
+        ops: { harvest: 0, pack: 0, load: 0 },
+        env: { temp_c: null, humidity: null, nutrient: null },
+      };
+    }
+  }
+  function saveState(){ localStorage.setItem(STORE_KEY, JSON.stringify(state)); }
+
+  // ======================
+  // UI helpers
+  // ======================
+  function fmt(v, digits=3){
+    if (v === null || v === undefined || Number.isNaN(v)) return "-";
+    return Number(v).toFixed(digits);
+  }
+  function logLine(line){
+    const el = document.getElementById("log");
+    el.textContent += line + "\n";
+    el.scrollTop = el.scrollHeight;
+  }
+  function setLastUpdate(ts){
+    const el = document.getElementById("lastUpdate");
+    const d = new Date(ts);
+    el.textContent = "Last: " + d.toLocaleTimeString();
+  }
+
+  // ======================
+  // Tabs
+  // ======================
+  function switchTab(tab){
+    for(const t of ["controller","ops","env"]){
+      document.getElementById("tab-"+t).classList.toggle("hidden", t !== tab);
+      document.getElementById("tabBtn-"+t).classList.toggle("active", t === tab);
+    }
+  }
+
+  // ======================
+  // WebSocket
+  // ======================
+  function send(obj){
+    if(!ws || ws.readyState !== 1) return;
+    ws.send(JSON.stringify(obj));
+  }
+
+  function connect(){
+    const ip = document.getElementById("ip").value.trim();
+    ws = new WebSocket(`ws://${ip}:8765`);
+
+    ws.onopen = () => {
+      logLine("[open] connected");
+      send({ type:"ops_get", req_id: rid() });
+      send({ type:"env_get", req_id: rid() });
+    };
+    ws.onclose = () => { logLine("[close] disconnected"); };
+    ws.onerror = (e) => { logLine("[error] " + e); };
+
+    ws.onmessage = (e) => {
+      let data;
+      try{ data = JSON.parse(e.data); } catch { return; }
+
+      if(data.type === "dobot_state"){
+        setLastUpdate(Date.now());
+
+        const jd = data.joint_deg || [];
+        document.getElementById("j1").textContent = fmt(jd[0],3) + " °";
+        document.getElementById("j2").textContent = fmt(jd[1],3) + " °";
+        document.getElementById("j3").textContent = fmt(jd[2],3) + " °";
+        document.getElementById("j4").textContent = fmt(jd[3],3) + " °";
+
+        const xyzr = data.xyzr || {};
+        document.getElementById("x").textContent = fmt(xyzr.x_mm,3) + " mm";
+        document.getElementById("y").textContent = fmt(xyzr.y_mm,3) + " mm";
+        document.getElementById("z").textContent = fmt(xyzr.z_mm,3) + " mm";
+        document.getElementById("r").textContent = fmt(xyzr.r_deg,3) + " °";
+
+        if(data.source){
+          document.getElementById("jointTopic").textContent = "Joint topic: " + (data.source.joint_topic || "-");
+          document.getElementById("poseTopic").textContent  = "Pose topic: "  + (data.source.pose_topic  || "-");
+        }
+
+        logLine(`[state] J=[${jd.map(v=>fmt(v)).join(", ")}] | X=${fmt(xyzr.x_mm)}, Y=${fmt(xyzr.y_mm)}, Z=${fmt(xyzr.z_mm)}, R=${fmt(xyzr.r_deg)}`);
+      }
+
+      if(data.type === "pp_done"){
+        state.ppCount += 1;
+        saveState();
+        renderCounters();
+        logLine("[pp_done] Pick&Place count++");
+      }
+
+      if(data.type === "ops_update"){
+        if(typeof data.harvest === "number") state.ops.harvest = data.harvest;
+        if(typeof data.pack === "number") state.ops.pack = data.pack;
+        if(typeof data.load === "number") state.ops.load = data.load;
+        saveState();
+        renderOps();
+        logLine("[ops_update] " + JSON.stringify(data));
+      }
+
+      if(data.type === "env_update"){
+        if(typeof data.temp_c === "number") state.env.temp_c = data.temp_c;
+        if(typeof data.humidity === "number") state.env.humidity = data.humidity;
+        if(data.nutrient !== undefined) state.env.nutrient = data.nutrient;
+        saveState();
+        renderEnv();
+        logLine("[env_update] " + JSON.stringify(data));
+      }
+    };
+  }
+
+  // ======================
+  // Renderers
+  // ======================
+  function renderCounters(){
+    document.getElementById("ppCountBig").textContent = state.ppCount;
+  }
+  function renderOps(){
+    document.getElementById("harvestKpi").textContent = state.ops.harvest;
+    document.getElementById("packKpi").textContent = state.ops.pack;
+    document.getElementById("loadKpi").textContent = state.ops.load;
+  }
+  function renderEnv(){
+    document.getElementById("tempKpi").textContent = (state.env.temp_c === null ? "-" : fmt(state.env.temp_c,1));
+    document.getElementById("humKpi").textContent  = (state.env.humidity === null ? "-" : fmt(state.env.humidity,1));
+    document.getElementById("nutKpi").textContent  = (state.env.nutrient === null || state.env.nutrient === undefined ? "-" : String(state.env.nutrient));
+  }
+
+  function resetCounters(){
+    state.ppCount = 0;
+    state.ops = { harvest: 0, pack: 0, load: 0 };
+    saveState();
+    renderCounters();
+    renderOps();
+    logLine("[reset] counters reset");
+    send({ type:"counters_reset", req_id: rid() });
+  }
+
+  // ======================
+  // Actions
+  // ======================
+  function sendPickPlace(){
+    send({ type:"pick_place", req_id: rid() });
+    logLine("[send] pick_place");
+  }
+
+  function sendOps(kind){
+    send({ type:"ops_cmd", req_id: rid(), cmd: kind });
+    logLine("[send] ops_cmd: " + kind);
+
+    // 테스트용(서버 없이도 숫자 오르게)
+    if(kind === "harvest_inc") state.ops.harvest += 1;
+    if(kind === "pack_inc") state.ops.pack += 1;
+    if(kind === "load_inc") state.ops.load += 1;
+    saveState();
+    renderOps();
+  }
+
+  function sendEnvRequest(){
+    send({ type:"env_get", req_id: rid() });
+    logLine("[send] env_get");
+  }
+  function simulateEnv(){
+    state.env.temp_c = 18 + Math.random()*10;
+    state.env.humidity = 40 + Math.random()*40;
+    state.env.nutrient = Math.round(800 + Math.random()*600);
+    saveState();
+    renderEnv();
+    logLine("[simulate] env updated locally");
+  }
+
+  // ======================
+  // Utils
+  // ======================
+  function rid(){
+    return (crypto.randomUUID ? crypto.randomUUID() : String(Date.now()));
+  }
+
+  // Initial render
+  renderCounters();
+  renderOps();
+  renderEnv();
+</script>
+</body>
+</html>

@@ -1,0 +1,29 @@
+# --- 비밀/환경 ---
+.env
+*.env
+!.env.example
+
+# --- Python ---
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# --- 실행 산출물 ---
+output_results/
+alert_voice.mp3
+runs/
+
+# --- 대용량 모델/데이터셋 (repo 미포함) ---
+# 모델 가중치: training/step2_train.py 로 재학습하여 생성
+*.pt
+*.pth
+# 데이터셋: Roboflow 공개 데이터셋 기반 (README 참고)
+dataset/
+cropped_dataset/
+tomato_robot/
+
+# --- OS/IDE ---
+.DS_Store
+.idea/
+.vscode/
